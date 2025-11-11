@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claims-service
+  labels:
+    app: claims-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: claims-service
+  template:
+    metadata:
+      labels:
+        app: claims-service
+    spec:
+      containers:
+      - name: claims-service
+        image: REPLACE_WITH_ECR/claims-service:latest
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
