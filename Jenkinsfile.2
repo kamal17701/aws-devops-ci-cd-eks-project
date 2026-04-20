@@ -1,8 +1,8 @@
 pipeline {
   agent any
   environment {
-    AWS_REGION = 'us-east-1'                       // change as needed
-    ECR_REPO = '123456789012.dkr.ecr.us-east-1/claims-service' // replace with your account/repo
+    AWS_REGION = 'us-east-1'                      
+    ECR_REPO = '123456789012.dkr.ecr.us-east-1/claims-service' 
     IMAGE_TAG = "${env.BUILD_NUMBER}"
   }
   stages {
@@ -11,7 +11,7 @@ pipeline {
     }
     stage('Build (Maven)') {
       steps {
-        sh 'mvn -B -DskipTests=false clean package' // run tests; remove skipTests if needed
+        sh 'mvn -B -DskipTests=false clean package' 
       }
     }
     stage('Build Docker Image') {
