@@ -1,4 +1,3 @@
-
 # Installs: Docker, kubectl, AWS CLI, Java 17, Maven
 # Usage:
 #   ansible-playbook -i inventory/hosts.ini playbooks/setup.yml
