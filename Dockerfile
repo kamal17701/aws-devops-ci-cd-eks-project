@@ -1,8 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-# stage 1 — Builder
-# Compiles the Java app and produces the fat JAR via Maven.
-# This stage is discarded — it never ships to production.
-# ─────────────────────────────────────────────────────────────
 FROM eclipse-temurin:17-jdk-jammy AS builder
 
 WORKDIR /build
