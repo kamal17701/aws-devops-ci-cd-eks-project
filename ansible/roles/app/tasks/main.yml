@@ -1,0 +1,38 @@
+---
+# Role: app
+# Tasks for application-level configuration on EC2 instances
+# This runs AFTER the base setup.yml playbook
+
+- name: Create application directory
+  ansible.builtin.file:
+    path: /opt/kamalapp
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    mode: '0755'
+
+- name: Configure Docker daemon for ECR (increase log rotation)
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    mode: '0644'
+  notify: Restart Docker
+
+- name: Set AWS region environment variable for ec2-user
+  ansible.builtin.lineinfile:
+    path: /home/ec2-user/.bashrc
+    line: "export AWS_DEFAULT_REGION=ap-south-1"
+    state: present
+
+handlers:
+  - name: Restart Docker
+    ansible.builtin.systemd:
+      name: docker
+      state: restarted
