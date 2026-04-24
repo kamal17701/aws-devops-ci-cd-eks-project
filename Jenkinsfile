@@ -1,9 +1,3 @@
-// Jenkins Declarative Pipeline
-// Equivalent to the GitHub Actions workflow — use this if you prefer Jenkins
-// Configure these in Jenkins → Manage Jenkins → Credentials:
-//   - AWS_CREDENTIALS_ID : AWS access key + secret
-//   - ECR_REGISTRY       : <account_id>.dkr.ecr.ap-south-1.amazonaws.com
-
 pipeline {
 
     agent any
