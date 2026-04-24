@@ -1,9 +1,14 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: claims-ingress
+  name: kamalapp-ingress
+  namespace: default
   annotations:
-    kubernetes.io/ingress.class: alb  # or 'nginx' if using nginx-ingress
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
 spec:
   rules:
     - http:
@@ -12,6 +17,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: claims-service
+                name: kamalapp-service
                 port:
                   number: 80
