@@ -1,6 +1,11 @@
+---
+# Ansible Playbook: Bootstrap EC2 instances used as Jenkins agents
 # Installs: Docker, kubectl, AWS CLI, Java 17, Maven
+#
 # Usage:
 #   ansible-playbook -i inventory/hosts.ini playbooks/setup.yml
+#   ansible-playbook -i inventory/hosts.ini playbooks/setup.yml --tags docker
+
 - name: Bootstrap DevOps toolchain on EC2 instances
   hosts: jenkins_agents
   become: true
@@ -13,7 +18,7 @@
 
   tasks:
 
-    # ── System Updates
+    # ── System Updates ──────────────────────────────────────────────────────
     - name: Update all system packages
       ansible.builtin.yum:
         name: "*"
@@ -32,7 +37,7 @@
         state: present
       tags: [base]
 
-    # ── Java 17
+    # ── Java 17 ─────────────────────────────────────────────────────────────
     - name: Install Java 17 (Amazon Corretto)
       ansible.builtin.yum:
         name: "{{ java_package }}"
@@ -50,14 +55,14 @@
         var: java_version_output.stderr
       tags: [java]
 
-    # ── Maven 
+    # ── Maven ────────────────────────────────────────────────────────────────
     - name: Install Maven
       ansible.builtin.yum:
         name: maven
         state: present
       tags: [maven]
 
-    # ── Docker 
+    # ── Docker ───────────────────────────────────────────────────────────────
     - name: Install Docker
       ansible.builtin.yum:
         name: docker
@@ -78,7 +83,7 @@
         append: true
       tags: [docker]
 
-    # ── AWS CLI v2 
+    # ── AWS CLI v2 ───────────────────────────────────────────────────────────
     - name: Check if AWS CLI is already installed
       ansible.builtin.command: aws --version
       register: awscli_check
@@ -107,7 +112,7 @@
       when: awscli_check.rc != 0
       tags: [awscli]
 
-    # ── kubectl
+    # ── kubectl ──────────────────────────────────────────────────────────────
     - name: Check if kubectl is already installed
       ansible.builtin.command: kubectl version --client
       register: kubectl_check
@@ -123,7 +128,7 @@
       when: kubectl_check.rc != 0
       tags: [kubectl]
 
-    # ── Verification
+    # ── Verification ─────────────────────────────────────────────────────────
     - name: Print installed tool versions
       ansible.builtin.shell: |
         echo "=== Docker ===" && docker --version
