@@ -1,0 +1,142 @@
+
+# Installs: Docker, kubectl, AWS CLI, Java 17, Maven
+# Usage:
+#   ansible-playbook -i inventory/hosts.ini playbooks/setup.yml
+- name: Bootstrap DevOps toolchain on EC2 instances
+  hosts: jenkins_agents
+  become: true
+  gather_facts: true
+
+  vars:
+    kubectl_version: "1.29.0"
+    aws_cli_version: "2"
+    java_package: "java-17-amazon-corretto"
+
+  tasks:
+
+    # ── System Updates
+    - name: Update all system packages
+      ansible.builtin.yum:
+        name: "*"
+        state: latest
+        update_cache: true
+      tags: [base]
+
+    - name: Install common utilities
+      ansible.builtin.yum:
+        name:
+          - git
+          - curl
+          - unzip
+          - jq
+          - wget
+        state: present
+      tags: [base]
+
+    # ── Java 17
+    - name: Install Java 17 (Amazon Corretto)
+      ansible.builtin.yum:
+        name: "{{ java_package }}"
+        state: present
+      tags: [java]
+
+    - name: Verify Java version
+      ansible.builtin.command: java -version
+      register: java_version_output
+      changed_when: false
+      tags: [java]
+
+    - name: Show Java version
+      ansible.builtin.debug:
+        var: java_version_output.stderr
+      tags: [java]
+
+    # ── Maven 
+    - name: Install Maven
+      ansible.builtin.yum:
+        name: maven
+        state: present
+      tags: [maven]
+
+    # ── Docker 
+    - name: Install Docker
+      ansible.builtin.yum:
+        name: docker
+        state: present
+      tags: [docker]
+
+    - name: Start and enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+      tags: [docker]
+
+    - name: Add ec2-user to docker group (avoids needing sudo for docker)
+      ansible.builtin.user:
+        name: ec2-user
+        groups: docker
+        append: true
+      tags: [docker]
+
+    # ── AWS CLI v2 
+    - name: Check if AWS CLI is already installed
+      ansible.builtin.command: aws --version
+      register: awscli_check
+      ignore_errors: true
+      changed_when: false
+      tags: [awscli]
+
+    - name: Download AWS CLI v2 installer
+      ansible.builtin.get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+        mode: '0644'
+      when: awscli_check.rc != 0
+      tags: [awscli]
+
+    - name: Unzip AWS CLI installer
+      ansible.builtin.unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp/
+        remote_src: true
+      when: awscli_check.rc != 0
+      tags: [awscli]
+
+    - name: Install AWS CLI v2
+      ansible.builtin.command: /tmp/aws/install
+      when: awscli_check.rc != 0
+      tags: [awscli]
+
+    # ── kubectl
+    - name: Check if kubectl is already installed
+      ansible.builtin.command: kubectl version --client
+      register: kubectl_check
+      ignore_errors: true
+      changed_when: false
+      tags: [kubectl]
+
+    - name: Download kubectl {{ kubectl_version }}
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+      when: kubectl_check.rc != 0
+      tags: [kubectl]
+
+    # ── Verification
+    - name: Print installed tool versions
+      ansible.builtin.shell: |
+        echo "=== Docker ===" && docker --version
+        echo "=== Java ===" && java -version 2>&1
+        echo "=== Maven ===" && mvn -version
+        echo "=== AWS CLI ===" && aws --version
+        echo "=== kubectl ===" && kubectl version --client
+      register: versions
+      changed_when: false
+      tags: [verify]
+
+    - name: Show tool versions
+      ansible.builtin.debug:
+        var: versions.stdout_lines
+      tags: [verify]
