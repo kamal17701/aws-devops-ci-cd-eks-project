@@ -17,9 +17,9 @@ permissions:
   contents: read
 
 jobs:
-  
+  # ──────────────────────────────────────────────
   # JOB 1: Build & Test the Java Application
-
+  # ──────────────────────────────────────────────
   build-and-test:
     name: Build & Test (Maven)
     runs-on: ubuntu-latest
@@ -45,9 +45,9 @@ jobs:
           path: target/*.jar
           retention-days: 1
 
-  
+  # ──────────────────────────────────────────────
   # JOB 2: Build Docker Image & Push to ECR
-  
+  # ──────────────────────────────────────────────
   docker-build-push:
     name: Docker Build & Push to ECR
     runs-on: ubuntu-latest
@@ -61,11 +61,28 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Download build artifact
+      # ── Download the JAR built in Job 1 ──────────────────────────────
+      # This downloads the JAR into target/ in the current workspace.
+      # The Dockerfile does:  COPY target/*.jar app.jar
+      # So target/ MUST exist and contain the JAR before docker build runs.
+      # This avoids re-running Maven inside Docker (faster, no Maven in image).
+      - name: Download pre-built JAR artifact from Job 1
         uses: actions/download-artifact@v4
         with:
           name: app-jar
           path: target/
+
+      # Verify the JAR landed correctly — catches artifact issues early
+      - name: Verify JAR exists in target/
+        run: |
+          echo "Contents of target/:"
+          ls -lh target/
+          JAR_COUNT=$(ls target/*.jar 2>/dev/null | wc -l)
+          if [ "$JAR_COUNT" -eq 0 ]; then
+            echo "❌ ERROR: No JAR found in target/ — cannot build Docker image"
+            exit 1
+          fi
+          echo "✅ JAR found: $(ls target/*.jar)"
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -83,22 +100,27 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          LATEST_URI="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+          echo "Building Docker image: $IMAGE_URI"
 
           docker build \
-            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-            --build-arg VCS_REF=${{ github.sha }} \
-            -t $IMAGE_URI \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --build-arg VCS_REF="${IMAGE_TAG}" \
+            --tag "$IMAGE_URI" \
+            --tag "$LATEST_URI" \
             .
 
-          docker push $IMAGE_URI
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "Pushing to ECR..."
+          docker push "$IMAGE_URI"
+          docker push "$LATEST_URI"
 
-          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "image=$IMAGE_URI" >> "$GITHUB_OUTPUT"
           echo "✅ Image pushed: $IMAGE_URI"
 
+  # ──────────────────────────────────────────────
   # JOB 3: Deploy to EKS
-
+  # ──────────────────────────────────────────────
   deploy-to-eks:
     name: Deploy to EKS
     runs-on: ubuntu-latest
