@@ -5,7 +5,10 @@
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <!-- Spring Boot parent — manages all dependency versions -->
+  <!--
+    Spring Boot parent manages all dependency + plugin versions.
+    Never mix Spring Boot versions — keep parent and plugin in sync.
+  -->
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
@@ -17,38 +20,47 @@
   <artifactId>kamalapp</artifactId>
   <version>1.5.0</version>
   <packaging>jar</packaging>
+
+  <!-- NOTE: correct tag is <name>, not <n> -->
   <name>kamalapp</name>
-  <description>Java microservice used as the deployment target for the DevOps pipeline demo</description>
+  <description>Java microservice — DevOps pipeline demo target on AWS EKS</description>
 
   <properties>
     <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!--
+      Explicitly tell the Spring Boot Maven plugin which class is the entry point.
+      This eliminates the "Unable to find main class" error even if component
+      scanning or classpath ordering causes auto-detection to fail.
+    -->
+    <start-class>com.kamal.devops.KamalAppApplication</start-class>
   </properties>
 
   <dependencies>
 
-    <!-- Spring Boot Web — REST endpoints (@RestController, @GetMapping) -->
+    <!-- Spring MVC — provides @RestController, @GetMapping, ResponseEntity -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
 
-    <!-- Spring Boot Actuator — /actuator/health, /actuator/info -->
+    <!-- Actuator — /actuator/health, /actuator/info, /actuator/prometheus -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
     <!--
-      Micrometer Prometheus Registry
-      Enables the /actuator/prometheus endpoint scraped by Prometheus in the cluster.
+      Micrometer Prometheus registry.
+      Enables the /actuator/prometheus endpoint that Prometheus scrapes
+      inside the EKS cluster (configured via pod annotations in deployment.yaml).
     -->
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
 
-    <!-- Test dependencies -->
+    <!-- Test scope — not included in the final JAR -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -59,17 +71,30 @@
 
   <build>
     <plugins>
+
       <!--
-        Spring Boot Maven Plugin
-        Creates a fat executable JAR (target/kamalapp-1.5.0.jar)
-        This is what the Dockerfile COPYs in the final image stage.
+        Spring Boot Maven Plugin.
+        Repackages the compiled JAR into an executable fat JAR that
+        embeds Tomcat and all dependencies.
+
+        The <configuration><mainClass> here is belt-and-braces —
+        the <start-class> property above already handles it,
+        but having both guarantees no ambiguity.
       -->
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>com.kamal.devops.KamalAppApplication</mainClass>
+        </configuration>
       </plugin>
 
-      <!-- Surefire — runs unit tests in CI (mvn clean package triggers this) -->
+      <!--
+        Maven Surefire Plugin — runs unit tests during the 'test' phase.
+        GitHub Actions runs: mvn clean package
+        which triggers: compile → test → package (in that order).
+        Test results land in target/surefire-reports/*.xml
+      -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
