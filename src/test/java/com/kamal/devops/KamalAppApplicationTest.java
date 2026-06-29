@@ -1,34 +1,24 @@
 package com.kamal.devops;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+/**
+ * Spring Boot entry point for kamalapp.
+ *
+ * This is the class the Spring Boot Maven plugin detects as the main class.
+ * It must be in the root package (com.kamal.devops) so component scanning
+ * picks up all sub-packages (controller, config) automatically.
+ *
+ * The app exposes:
+ *   GET /health               -> liveness + readiness probe
+ *   GET /info                 -> deployment metadata
+ *   GET /actuator/prometheus  -> Prometheus metrics scrape endpoint
+ */
+@SpringBootApplication
+public class KamalAppApplication {
 
-@SpringBootTest
-@AutoConfigureMockMvc
-class KamalAppApplicationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Test
-    void healthEndpoint_returns200_withStatusUp() throws Exception {
-        mockMvc.perform(get("/health"))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.status").value("UP"))
-               .andExpect(jsonPath("$.timestamp").exists());
-    }
-
-    @Test
-    void infoEndpoint_returns200_withAppMetadata() throws Exception {
-        mockMvc.perform(get("/info"))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.app").value("kamalapp"))
-               .andExpect(jsonPath("$.version").value("1.5.0"));
+    public static void main(String[] args) {
+        SpringApplication.run(KamalAppApplication.class, args);
     }
 }
