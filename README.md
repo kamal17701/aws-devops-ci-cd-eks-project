@@ -35,7 +35,7 @@
 
 A **production-style DevOps project** demonstrating a complete, automated delivery pipeline for a containerised Java microservice on AWS.
 
-Every layer is covered: application build → containerisation → cloud infrastructure provisioning → Kubernetes deployment → monitoring and alerting. The focus is on **automation, reliability, and the engineering discipline** that separates a working pipeline from a production-ready one.
+Every layer is covered: application build → containerisation → cloud infrastructure provisioning → Kubernetes deployment → monitoring and alerting. The focus is on **automation and production best practices** that separates a working pipeline from a production-ready one.
 
 **The pipeline in one line:**
 ```
@@ -104,7 +104,7 @@ aws-devops-ci-cd-eks-project/
 │   └── workflows/
 │       └── ci-cd.yml              # 3-stage GitHub Actions pipeline
 │
-├── Terraform/
+├── terraform/
 │   ├── main.tf                    # Root module — wires VPC + EKS + ECR
 │   ├── variables.tf               # All input variables with validation
 │   ├── outputs.tf                 # Cluster endpoint, ECR URL, kubeconfig cmd
@@ -356,5 +356,7 @@ Copying `pom.xml` first and running `mvn dependency:go-offline` before copying s
 **Kamal** — DevOps Engineer  
 [GitHub](https://github.com/kamal17701) · [LinkedIn](https://www.linkedin.com/in/YOUR-LINKEDIN-HERE)
 
-> Built to learn by doing. Every component was provisioned, broken, debugged, and fixed manually before being automate.
+> Built to learn by doing.
+
+Every component was provisioned, tested, debugged, and automated manually before reaching its final state.
 
